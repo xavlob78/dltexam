@@ -18,46 +18,39 @@ def jaffleshop_source(page_size,chunk_size):
         )
     )
 
-    @dlt.resource(table_name="orders", write_disposition="replace", primary_key="id",parallelized=True)
+    @dlt.resource(table_name="orders", write_disposition="replace", parallelized=True)
     def jaffleshop_orders():
       pages= client.paginate(
           "/orders",
           params={
-              "page_size":page_size
+              "page_size":page_size,
+              "start_date":"2017-08-01"
           })
       while page_slice := list(islice(pages, chunk_size)):
         yield page_slice
 
-    @dlt.resource(table_name="customers", write_disposition="replace", primary_key="id",parallelized=True)
+    @dlt.resource(table_name="customers", write_disposition="replace",parallelized=True)
     def jaffleshop_customers():
       pages= client.paginate("/customers")
       while page_slice := list(islice(pages, chunk_size)):
         yield page_slice
 
-    @dlt.resource(table_name="products", write_disposition="replace", primary_key="sku",parallelized=True)
+    @dlt.resource(table_name="products", write_disposition="replace", parallelized=True)
     def jaffleshop_products():
       pages= client.paginate("/products")
       while page_slice := list(islice(pages, chunk_size)):
         yield page_slice
 
-    return jaffleshop_orders, jaffleshop_customers, jaffleshop_products
-
-os.environ["EXTRACT__WORKERS"] = "10"
-os.environ["NORMALIZE__WORKERS"] = "10"
-os.environ["LOAD__WORKERS"] = "10"
-os.environ["EXTRACT__BUFFER_ITEMS"] = "10000"
-os.environ["NORMALIZE__BUFFER_ITEMS"] = "50000"
-os.environ["NORMALIZE__DATA_WRITER__MAX_ITEMS"] = "10000"
-os.environ["NORMALIZE__DATA_WRITER__MAX_SIZE"] = "20MiB"
+    return jaffleshop_orders,jaffleshop_customers,jaffleshop_products
 
 pipeline = dlt.pipeline(
-    pipeline_name="dltoptim",
+    pipeline_name="dltoptim_v1",
     destination="duckdb",
     dataset_name="dltexo",
 )
 
 
-extract_info = pipeline.extract(jaffleshop_source(500,100))
+extract_info = pipeline.extract(jaffleshop_source(100,100))
 print(extract_info)
 
 normalize_info = pipeline.normalize()
